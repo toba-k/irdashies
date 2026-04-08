@@ -139,6 +139,9 @@ export const defaultDashboard: {
           trackName: {
             enabled: false,
           },
+          sof: {
+            enabled: false,
+          },
           displayOrder: [
             'sessionName',
             'sessionTime',
@@ -153,6 +156,7 @@ export const defaultDashboard: {
             'trackTemperature',
             'wind',
             'trackName',
+            'sof',
           ],
         },
         footerBar: {
@@ -199,6 +203,9 @@ export const defaultDashboard: {
           trackName: {
             enabled: false,
           },
+          sof: {
+            enabled: false,
+          },
           displayOrder: [
             'sessionName',
             'sessionTime',
@@ -213,6 +220,7 @@ export const defaultDashboard: {
             'trackTemperature',
             'wind',
             'trackName',
+            'sof',
           ],
         },
         showOnlyWhenOnTrack: false,
@@ -495,6 +503,9 @@ export const defaultDashboard: {
           trackName: {
             enabled: false,
           },
+          sof: {
+            enabled: false,
+          },
           displayOrder: [
             'sessionName',
             'sessionTime',
@@ -509,6 +520,7 @@ export const defaultDashboard: {
             'trackTemperature',
             'wind',
             'trackName',
+            'sof',
           ],
         },
         footerBar: {
@@ -555,6 +567,9 @@ export const defaultDashboard: {
           trackName: {
             enabled: false,
           },
+          sof: {
+            enabled: false,
+          },
           displayOrder: [
             'sessionName',
             'sessionTime',
@@ -569,6 +584,7 @@ export const defaultDashboard: {
             'trackTemperature',
             'wind',
             'trackName',
+            'sof',
           ],
         },
         showOnlyWhenOnTrack: false,

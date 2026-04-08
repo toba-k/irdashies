@@ -13,6 +13,7 @@ export const VALID_SESSION_BAR_ITEM_KEYS = [
   'trackTemperature',
   'wind',
   'trackName',
+  'sof',
 ] as const;
 
 // Labels for session bar items
@@ -30,6 +31,7 @@ export const SESSION_BAR_ITEM_LABELS: Record<string, string> = {
   trackTemperature: 'Track Temperature',
   wind: 'Wind',
   trackName: 'Track Name',
+  sof: 'Strength Of Field',
 };
 
 // Default display order for session bar items (same for headerBar and footerBar)

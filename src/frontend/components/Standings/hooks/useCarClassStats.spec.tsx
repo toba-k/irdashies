@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { useCarClassStats } from './useCarClassStats';
 import { describe, it, vi, expect } from 'vitest';
-import { useSessionDrivers } from '@irdashies/context';
+import { useDriverCarIdx, useSessionDrivers } from '@irdashies/context';
 import type { Driver } from '@irdashies/types';
 
 vi.mock('@irdashies/context');
@@ -9,30 +9,35 @@ vi.mock('@irdashies/context');
 describe('useCarClassStats', () => {
   const mockDrivers = [
     {
+      CarIdx: 1,
       CarClassID: '1',
       CarClassColor: 123456,
       CarClassShortName: 'GT3',
       IRating: 1000,
     },
     {
+      CarIdx: 2,
       CarClassID: '1',
       CarClassColor: 123456,
       CarClassShortName: 'GT3',
       IRating: 2000,
     },
     {
+      CarIdx: 3,
       CarClassID: '1',
       CarClassColor: 123456,
       CarClassShortName: 'GT3',
       IRating: 2250,
     },
     {
+      CarIdx: 4,
       CarClassID: '1',
       CarClassColor: 123456,
       CarClassShortName: 'GT3',
       IRating: 1950,
     },
     {
+      CarIdx: 5,
       CarClassID: '2',
       CarClassColor: 654321,
       CarClassShortName: 'LMP2',
@@ -42,6 +47,7 @@ describe('useCarClassStats', () => {
 
   it('should return correct class stats', () => {
     vi.mocked(useSessionDrivers).mockReturnValue(mockDrivers);
+    vi.mocked(useDriverCarIdx).mockReturnValue(1);
     const { result } = renderHook(() => useCarClassStats());
 
     expect(result.current).toEqual({
@@ -50,12 +56,14 @@ describe('useCarClassStats', () => {
         color: 123456,
         shortName: 'GT3',
         sof: 1748,
+        isPlayerClass: true,
       },
       '2': {
         total: 1,
         color: 654321,
         shortName: 'LMP2',
         sof: 3000,
+        isPlayerClass: false,
       },
     });
   });

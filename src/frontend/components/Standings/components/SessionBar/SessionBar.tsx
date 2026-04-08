@@ -11,6 +11,7 @@ import {
   useDriverIncidents,
   useSessionLapCount,
   useBrakeBias,
+  useCarClassStats,
 } from '../../hooks';
 import { useTrackWetness } from '../../hooks/useTrackWetness';
 import { useTrackTemperature } from '../../hooks/useTrackTemperature';
@@ -29,6 +30,8 @@ import { useSessionCurrentTime } from '../../hooks/useSessionCurrentTime';
 import { usePrecipitation } from '../../hooks/usePrecipitation';
 import { SessionState } from '@irdashies/types';
 import { WindArrow } from '../../../shared/WindArrow';
+
+//import logger from '@irdashies/utils/logger';
 
 // compact=true (total time): trims trailing zero components, never shows seconds
 // compact=false (elapsed/remaining): always shows full HH:MM:SS
@@ -131,9 +134,22 @@ export const SessionBar = ({
   const { totalRaceLaps, isFixedLapRace } = useTotalRaceLaps();
   const { totalRaceTime, adjustedRaceTime } = useTotalRaceTime();
   const trackDisplayName = useTrackDisplayName();
+  const classStats = useCarClassStats();
+
+  //logger.debug('classStats:', JSON.stringify(classStats, null, 2));
 
   // Define all possible items with their render functions
   const itemDefinitions = {
+    sof: {
+      enabled:
+        effectiveBarSettings?.sof?.enabled ??
+        (position === 'header' ? true : false),
+      render: () => (
+        <div className="flex">
+          {Object.values(classStats ?? {}).find((s) => s.isPlayerClass)?.sof}
+        </div>
+      ),
+    },
     sessionName: {
       enabled:
         effectiveBarSettings?.sessionName?.enabled ??

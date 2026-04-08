@@ -388,6 +388,7 @@ const RelativeWithReorderableConfig = () => {
         trackTemperature: { enabled: false, unit: 'Metric' },
         wind: { enabled: false, speedPosition: 'right' },
         trackName: { enabled: false },
+        sof: { enabled: false },
         displayOrder: [
           'sessionName',
           'sessionTime',
@@ -416,6 +417,7 @@ const RelativeWithReorderableConfig = () => {
         trackTemperature: { enabled: true, unit: 'Metric' },
         wind: { enabled: false, speedPosition: 'right' },
         trackName: { enabled: false },
+        sof: { enabled: false },
         displayOrder: [
           'localTime',
           'trackWetness',

@@ -658,10 +658,16 @@ const FullHeaderBar = () => {
   const { precipitation } = usePrecipitation();
   const { trackTemp, airTemp } = useTrackTemperature();
 
+  // TODO
+  //const classStats = useCarClassStats();
+
   return (
     <div className="bg-slate-900/70 text-sm px-3 py-1 flex justify-between mb-3">
       <div className="flex items-center gap-1">
         <span>{sessionName}</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <span>66</span>
       </div>
       {currentLap > 0 && (
         <div className="flex items-center gap-1">
