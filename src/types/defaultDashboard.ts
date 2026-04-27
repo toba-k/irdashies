@@ -81,6 +81,7 @@ export const defaultDashboard: {
         lapTimeDeltas: {
           enabled: false,
           numLaps: 3,
+          decimalPlaces: 1,
         },
         avgLapTime: {
           enabled: false,
@@ -436,6 +437,7 @@ export const defaultDashboard: {
         lapTimeDeltas: {
           enabled: false,
           numLaps: 3,
+          decimalPlaces: 1,
         },
         displayOrder: [
           'position',
