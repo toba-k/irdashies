@@ -17,6 +17,7 @@ export type TimeFormat =
   | 'mixed'
   | 'minutes'
   | 'seconds-full'
+  | 'seconds-2'
   | 'seconds-mixed'
   | 'seconds';
 
@@ -66,6 +67,14 @@ export interface SessionBarConfig {
   airTemperature: { enabled: boolean; unit: TemperatureUnit };
   trackTemperature: { enabled: boolean; unit: TemperatureUnit };
   wind?: { enabled: boolean; speedPosition?: 'left' | 'right' };
+  humidity?: { enabled: boolean };
+  driverBadge?: {
+    enabled: boolean;
+    badgeFormat?: StandingsBadgeFormat;
+    showIRatingChange?: boolean;
+  };
+  sof?: { enabled: boolean };
+  classDrivers?: { enabled: boolean };
   trackName: { enabled: boolean };
   displayOrder: string[];
 }
@@ -423,6 +432,7 @@ export interface FlagConfig {
   showNoFlagState: boolean;
   enableGlow: boolean;
   doubleFlag?: boolean;
+  background?: { opacity: number };
   sessionVisibility: SessionVisibilitySettings;
 }
 
@@ -525,6 +535,13 @@ export interface SectorDeltaConfig {
    * 'session-best-only' – always compare against session best
    */
   ghostComparison: 'prefer-ghost' | 'session-best-only';
+  /**
+   * Whether to record and display sectors that contained an incident (x).
+   * true  – record the sector time and show a warning icon
+   * false – discard the sector time entirely (keeps previous best)
+   * Defaults to true when omitted.
+   */
+  trackIncidentSectors?: boolean;
   showOnlyWhenOnTrack: boolean;
   sessionVisibility: SessionVisibilitySettings;
   /**
@@ -535,6 +552,17 @@ export interface SectorDeltaConfig {
     green: number; // e.g. 0.5 means within 0.5% → green
     yellow: number; // e.g. 1.0 means within 1.0% → yellow; above = red
   };
+  /**
+   * Maximum number of sector cards to show at once. When the track has more
+   * sectors than this, the widget becomes a sliding carousel centered on the
+   * current sector. Omit (or undefined) to always show all sectors.
+   */
+  maxSectorsShown?: number;
+  /**
+   * Always use the continuous-scroll mode, even when all sectors fit in the
+   * widget. The center line stays pinned to your exact track position.
+   */
+  alwaysScroll?: boolean;
 }
 
 // ===========================
