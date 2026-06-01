@@ -1,4 +1,5 @@
 import type { DashboardWidget } from './dashboardLayout';
+import type { CornerNameOverlayConfig } from './cornerName';
 
 // ===========================
 // Shared primitive types
@@ -67,16 +68,9 @@ export interface SessionBarConfig {
   airTemperature: { enabled: boolean; unit: TemperatureUnit };
   trackTemperature: { enabled: boolean; unit: TemperatureUnit };
   wind?: { enabled: boolean; speedPosition?: 'left' | 'right' };
-  humidity?: { enabled: boolean };
-  driverBadge?: {
-    enabled: boolean;
-    badgeFormat?: StandingsBadgeFormat;
-    showIRatingChange?: boolean;
-  };
-  sof?: { enabled: boolean };
-  classDrivers?: { enabled: boolean };
   trackName: { enabled: boolean };
   displayOrder: string[];
+  foreground?: { opacity: number };
 }
 
 // ===========================
@@ -145,6 +139,7 @@ export interface StandingsConfig {
   lastTime: { enabled: boolean; timeFormat: TimeFormat };
   fastestTime: { enabled: boolean; timeFormat: TimeFormat };
   background: { opacity: number };
+  foreground?: { opacity: number };
   countryFlags: { enabled: boolean };
   carNumber: { enabled: boolean };
   driverStandings: {
@@ -177,6 +172,7 @@ export interface StandingsConfig {
 export interface RelativeConfig {
   buffer: number;
   background: { opacity: number };
+  foreground?: { opacity: number };
   countryFlags: { enabled: boolean };
   carNumber: { enabled: boolean };
   lastTime: { enabled: boolean; timeFormat: TimeFormat };
@@ -205,15 +201,25 @@ export interface RelativeConfig {
 
 export interface WeatherConfig {
   background: { opacity: number };
+  layout?: 'vertical' | 'horizontal';
+  horizontalMode?: 'compact' | 'full';
   displayOrder: string[];
   showOnlyWhenOnTrack?: boolean;
   airTemp: { enabled: boolean };
   trackTemp: { enabled: boolean };
+  humidity: { enabled: boolean };
   wetness: { enabled: boolean };
   trackState: { enabled: boolean };
   precipitation: { enabled: boolean };
   wind: { enabled: boolean };
   units: 'auto' | 'Metric' | 'Imperial';
+  sessionVisibility: SessionVisibilitySettings;
+}
+
+export interface WindConfig {
+  background: { opacity: number };
+  units: 'auto' | 'Metric' | 'Imperial';
+  showOnlyWhenOnTrack: boolean;
   sessionVisibility: SessionVisibilitySettings;
 }
 
@@ -240,6 +246,7 @@ export interface TrackMapConfig {
   sectorColoring?: {
     enabled: boolean;
   };
+  playerIcon?: { enabled: boolean; fileName: string };
 }
 
 export interface FlatTrackMapConfig {
@@ -491,6 +498,20 @@ export interface TwitchChatConfig {
   fontSize: number;
   channel: string;
   background: { opacity: number };
+  autoHide: { enabled: boolean; intervalSeconds: number };
+}
+
+export interface HeartRateConfig {
+  /** HypeRate session/device id — the code at the end of your share link (e.g. "KiY"). */
+  deviceId: string;
+  /**
+   * Optional HypeRate widget URL or name (e.g. "Bouncing_Heart_Widget" or
+   * "https://app.hyperate.io/animation/59/YOUR-ID-HERE"). The session id is
+   * substituted in automatically. Blank uses the default overlay.
+   */
+  widgetUrl: string;
+  showOnlyWhenOnTrack: boolean;
+  sessionVisibility: SessionVisibilitySettings;
 }
 
 export interface LapTimeLogConfig {
@@ -498,6 +519,7 @@ export interface LapTimeLogConfig {
   showPredictedLap: boolean;
   showLastLap: boolean;
   showBestLap: boolean;
+  showAllTimeLap: boolean;
   delta: {
     enabled: boolean;
     method: 'lastlap' | 'bestlap';
@@ -546,18 +568,18 @@ export interface SectorDeltaConfig {
   sessionVisibility: SessionVisibilitySettings;
   /**
    * Custom color thresholds as percentages of session best.
-   * Omit to use defaults (green: 0.5%, yellow: 1.0%).
+   * Set to null to use defaults (green: 0.5%, yellow: 1.0%).
    */
   thresholds?: {
     green: number; // e.g. 0.5 means within 0.5% → green
     yellow: number; // e.g. 1.0 means within 1.0% → yellow; above = red
-  };
+  } | null;
   /**
    * Maximum number of sector cards to show at once. When the track has more
    * sectors than this, the widget becomes a sliding carousel centered on the
-   * current sector. Omit (or undefined) to always show all sectors.
+   * current sector. Set to null to always show all sectors.
    */
-  maxSectorsShown?: number;
+  maxSectorsShown?: number | null;
   /**
    * Always use the continuous-scroll mode, even when all sectors fit in the
    * widget. The center line stays pinned to your exact track position.
@@ -571,6 +593,7 @@ export interface SectorDeltaConfig {
 
 export interface InformationBarConfig extends SessionBarConfig {
   background: { opacity: number };
+  foreground: { opacity: number };
   showOnlyWhenOnTrack: boolean;
   sessionVisibility: SessionVisibilitySettings;
 }
@@ -579,6 +602,7 @@ export interface WidgetConfigMap {
   standings: StandingsConfig;
   relative: RelativeConfig;
   weather: WeatherConfig;
+  wind: WindConfig;
   map: TrackMapConfig;
   flatmap: FlatTrackMapConfig;
   input: InputConfig;
@@ -596,6 +620,8 @@ export interface WidgetConfigMap {
   infobar: InformationBarConfig;
   slowcarahead: SlowCarAheadConfig;
   sectordelta: SectorDeltaConfig;
+  heartrate: HeartRateConfig;
+  cornername: CornerNameOverlayConfig;
 }
 
 export type TypedDashboardWidget<
@@ -631,7 +657,8 @@ export type SettingsTabType =
   | 'footer'
   | 'history'
   | 'telemetry'
-  | 'dashboard';
+  | 'dashboard'
+  | 'chromium';
 
 /** Available widgets for the Fuel Calculator */
 export type FuelWidgetType =
@@ -666,6 +693,7 @@ export interface ShiftPointSettings {
 export type StandingsWidgetSettings = BaseWidgetSettings<StandingsConfig>;
 export type RelativeWidgetSettings = BaseWidgetSettings<RelativeConfig>;
 export type WeatherWidgetSettings = BaseWidgetSettings<WeatherConfig>;
+export type WindWidgetSettings = BaseWidgetSettings<WindConfig>;
 export type TrackMapWidgetSettings = BaseWidgetSettings<TrackMapConfig>;
 export type FlatTrackMapWidgetSettings = BaseWidgetSettings<FlatTrackMapConfig>;
 export type SteerWidgetSettings = BaseWidgetSettings<SteerConfig>;
@@ -692,3 +720,6 @@ export type InformationBarWidgetSettings =
   BaseWidgetSettings<InformationBarConfig>;
 export type SlowCarAheadWidgetSettings = BaseWidgetSettings<SlowCarAheadConfig>;
 export type SectorDeltaWidgetSettings = BaseWidgetSettings<SectorDeltaConfig>;
+export type HeartRateWidgetSettings = BaseWidgetSettings<HeartRateConfig>;
+export type CornerNameWidgetSettings =
+  BaseWidgetSettings<CornerNameOverlayConfig>;

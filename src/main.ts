@@ -24,6 +24,12 @@ import { Analytics } from './app/analytics';
 import { setupReferenceLapsBridge } from './app/bridge/referenceLapsBridge';
 import { setupKeybindingsBridge } from './app/bridge/keybindingsBridge';
 import { setupLogBridge } from './app/bridge/logBridge';
+import { setupPersonalBestLapTimesBridge } from './app/bridge/personalBestLapTimesBridge';
+import {
+  validateReferenceLapFile,
+  flushReferenceLapsOnShutdown,
+} from './app/storage/referenceLaps';
+import { setupChromiumFlagsBridge } from './app/bridge/chromiumFlagsBridge';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) app.quit();
@@ -34,6 +40,7 @@ const overlayManager = new OverlayManager();
 const analytics = new Analytics();
 analytics.setupLogTransport();
 
+overlayManager.setupChromiumFlags();
 overlayManager.setupHardwareAcceleration();
 overlayManager.setupSingleInstanceLock();
 overlayManager.setupAutoStart();
@@ -47,6 +54,9 @@ app.on('ready', async () => {
 
   await iRacingSDKSetup(overlayManager);
 
+  // Perform one-time cleanup of old reference laps
+  validateReferenceLapFile();
+
   const dashboard = getOrCreateDefaultDashboard();
   const bridge = getCurrentBridge();
 
@@ -55,6 +65,8 @@ app.on('ready', async () => {
   setupFuelCalculatorBridge();
   setupPitLaneBridge();
   setupReferenceLapsBridge();
+  setupPersonalBestLapTimesBridge();
+  setupChromiumFlagsBridge();
 
   // Start component server for browser components
   await startComponentServer(bridge, dashboardBridge);
@@ -95,4 +107,7 @@ app.on('quit', () => {
 
 app.on('before-quit', () => {
   overlayManager.markQuitting();
+  // Synchronous flush so any pending debounced reference-lap write completes
+  // before the process exits.
+  flushReferenceLapsOnShutdown();
 });

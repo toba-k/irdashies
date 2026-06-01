@@ -60,6 +60,12 @@ const widgetItems: MenuItem[] = [
     widgetType: 'blindspotmonitor',
   },
   {
+    to: '/settings/cornername',
+    path: '/cornername',
+    label: 'Corner Names',
+    widgetType: 'cornername',
+  },
+  {
     to: '/settings/fastercarsfrombehind',
     path: '/fastercarsfrombehind',
     label: 'Faster Cars Behind',
@@ -83,6 +89,12 @@ const widgetItems: MenuItem[] = [
     path: '/garagecover',
     label: 'Garage Cover',
     widgetType: 'garagecover',
+  },
+  {
+    to: '/settings/heartrate',
+    path: '/heartrate',
+    label: 'Heart Rate',
+    widgetType: 'heartrate',
   },
   {
     to: '/settings/infobar',
@@ -121,6 +133,12 @@ const widgetItems: MenuItem[] = [
     widgetType: 'relative',
   },
   {
+    to: '/settings/sectordelta',
+    path: '/sectordelta',
+    label: 'Sector Delta',
+    widgetType: 'sectordelta',
+  },
+  {
     to: '/settings/slowcarahead',
     path: '/slowcarahead',
     label: 'Slow Car Ahead',
@@ -140,12 +158,6 @@ const widgetItems: MenuItem[] = [
   },
   { to: '/settings/map', path: '/map', label: 'Track Map', widgetType: 'map' },
   {
-    to: '/settings/sectordelta',
-    path: '/sectordelta',
-    label: 'Sector Delta',
-    widgetType: 'sectordelta',
-  },
-  {
     to: '/settings/twitchchat',
     path: '/twitchchat',
     label: 'Twitch Chat',
@@ -156,6 +168,12 @@ const widgetItems: MenuItem[] = [
     path: '/weather',
     label: 'Weather',
     widgetType: 'weather',
+  },
+  {
+    to: '/settings/wind',
+    path: '/wind',
+    label: 'Wind',
+    widgetType: 'wind',
   },
 ];
 

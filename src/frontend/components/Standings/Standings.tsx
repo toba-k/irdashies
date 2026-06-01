@@ -5,6 +5,7 @@ import { SessionBar } from './components/SessionBar/SessionBar';
 
 import { TitleBar } from './components/TitleBar/TitleBar';
 import {
+  useCarClassStats,
   useDriverStandings,
   useStandingsSettings,
   useHighlightColor,
@@ -19,7 +20,8 @@ import {
   useWeekendInfoTeamRacing,
   useSessionVisibility,
   useCarIdxRollingAvgLapTime,
-  useCarClassStats,
+  usePitStopDuration,
+  usePitLaneStore,
 } from '@irdashies/context';
 import { useIsSingleMake } from './hooks/useIsSingleMake';
 
@@ -46,6 +48,10 @@ export const Standings = () => {
   const avgLapTimes = useCarIdxRollingAvgLapTime(
     settings?.avgLapTime?.numLaps ?? 5
   );
+
+  const pitStopDurations = usePitStopDuration();
+  const pitExitPct = usePitLaneStore((s) => s.pitExitPct);
+  const pitExitAfterSF = pitExitPct !== null && pitExitPct > 0.85;
 
   // Determine whether we should hide the car manufacturer column
   const isSingleMake = useIsSingleMake();
@@ -84,7 +90,7 @@ export const Standings = () => {
     >
       <TitleBar titleBarSettings={settings?.titleBar} />
       {settings?.headerBar && (settings.headerBar.enabled ?? true) && (
-        <SessionBar settings={settings.headerBar} position="header" />
+        <SessionBar settings={settings.headerBar} opacity={settings?.foreground?.opacity} position="header" />
       )}
       <table
         className={`w-full table-auto text-sm border-separate ${tableBorderSpacing}`}
@@ -242,6 +248,8 @@ export const Standings = () => {
                         repair={result.repair}
                         penalty={result.penalty}
                         slowdown={result.slowdown}
+                        pitStopDuration={pitStopDurations[result.carIdx]}
+                        pitExitAfterSF={pitExitAfterSF}
                         hideCarManufacturer={hideCarManufacturer}
                         compactMode={generalSettings?.compactMode}
                       />
@@ -262,7 +270,7 @@ export const Standings = () => {
         </tbody>
       </table>
       {settings?.footerBar && (settings.footerBar.enabled ?? true) && (
-        <SessionBar settings={settings.footerBar} position="footer" />
+        <SessionBar settings={settings.footerBar} opacity={settings?.foreground?.opacity} position="footer" />
       )}
     </div>
   );

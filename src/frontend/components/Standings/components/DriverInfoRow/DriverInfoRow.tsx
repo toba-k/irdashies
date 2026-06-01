@@ -1,12 +1,8 @@
 import { memo, useMemo } from 'react';
 import { getTailwindStyle } from '@irdashies/utils/colors';
 import { formatTime, type TimeFormat } from '@irdashies/utils/time';
-import {
-  usePitStopDuration,
-  usePitLaneStore,
-  useDashboard,
-} from '@irdashies/context';
-import type { ResolvedDriverTag } from '../../hooks/useDriverTagMap';
+import { useDashboard } from '@irdashies/context';
+import type { ResolvedDriverTag } from '../../hooks';
 import type { Gap, LastTimeState } from '../../createStandings';
 import type {
   RelativeWidgetSettings,
@@ -71,6 +67,7 @@ interface DriverRowInfoProps {
   carTrackSurface?: number;
   currentSessionType?: string;
   pitStopDuration?: number | null;
+  pitExitAfterSF?: boolean;
   highlightColor?: number;
   dnf: boolean;
   repair: boolean;
@@ -142,6 +139,38 @@ const getDisplayProps = (props: DriverRowInfoProps) => {
   };
 };
 
+const arraysEqual = (a: unknown[] | undefined, b: unknown[] | undefined) => {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+};
+
+const propsAreEqual = (
+  prev: DriverRowInfoProps,
+  next: DriverRowInfoProps
+): boolean => {
+  const keys = new Set<keyof DriverRowInfoProps>([
+    ...(Object.keys(prev) as (keyof DriverRowInfoProps)[]),
+    ...(Object.keys(next) as (keyof DriverRowInfoProps)[]),
+  ]);
+  for (const key of keys) {
+    const p = prev[key];
+    const n = next[key];
+    if (p === n) continue;
+    if (
+      (key === 'lapTimeDeltas' || key === 'displayOrder') &&
+      Array.isArray(p) &&
+      Array.isArray(n)
+    ) {
+      if (!arraysEqual(p as unknown[], n as unknown[])) return false;
+      continue;
+    }
+    return false;
+  }
+  return true;
+};
+
 export const DriverInfoRow = memo((props: DriverRowInfoProps) => {
   // Transform props for hidden rows
   const displayProps = getDisplayProps(props);
@@ -192,23 +221,16 @@ export const DriverInfoRow = memo((props: DriverRowInfoProps) => {
     penalty,
     slowdown,
     deltaDecimalPlaces,
-    pitStopDuration: pitStopDurationProp,
+    pitStopDuration,
+    pitExitAfterSF,
     hideCarManufacturer,
     resolvedTag,
     hasAnyDriverTag,
     compactMode,
   } = displayProps;
-  const pitStopDurations = usePitStopDuration();
-  const pitStopDuration =
-    pitStopDurationProp ?? pitStopDurations[carIdx] ?? null;
-
-  const pitExitPct = usePitLaneStore((s) => s.pitExitPct);
 
   const { currentDashboard } = useDashboard();
   const tagSettings = currentDashboard?.generalSettings?.driverTagSettings;
-  // When pit exit is in the last 15% of the lap, the S/F line is reached
-  // very shortly after exiting pits. OUT must persist for one extra lap count.
-  const pitExitAfterSF = pitExitPct !== null && pitExitPct > 0.85;
 
   const lastTimeString = useMemo(() => {
     const format = config?.lastTime?.timeFormat ?? 'full';
@@ -220,7 +242,7 @@ export const DriverInfoRow = memo((props: DriverRowInfoProps) => {
     return formatTime(fastestTime, format as TimeFormat);
   }, [fastestTime, config?.fastestTime?.timeFormat]);
 
-  const offTrack = carTrackSurface === 0 ? true : false;
+  const offTrack = carTrackSurface === 0;
 
   const tailwindStyles = useMemo(() => {
     return getTailwindStyle(classColor, highlightColor, isMultiClass);
@@ -670,6 +692,6 @@ export const DriverInfoRow = memo((props: DriverRowInfoProps) => {
       {columnDefinitions.map((column) => column.component)}
     </tr>
   );
-});
+}, propsAreEqual);
 
 DriverInfoRow.displayName = 'DriverInfoRow';

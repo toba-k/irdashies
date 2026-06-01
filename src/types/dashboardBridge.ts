@@ -28,6 +28,8 @@ export interface ContainerBoundsInfo {
   isPrimary?: boolean;
   /** Full display bounds — used for widget-to-display assignment filtering */
   displayBounds?: { x: number; y: number; width: number; height: number };
+  /** Bounds of all known displays — used by the primary window to exclude widgets that belong to another display */
+  allDisplayBounds?: { x: number; y: number; width: number; height: number }[];
 }
 
 export interface DashboardBridge {
@@ -52,6 +54,8 @@ export interface DashboardBridge {
   getCurrentDashboard: () => DashboardLayout | null;
   saveGarageCoverImage: (buffer: Uint8Array) => Promise<string>;
   getGarageCoverImageAsDataUrl: (imagePath: string) => Promise<string | null>;
+  savePlayerIconImage: (buffer: Uint8Array) => Promise<string>;
+  getPlayerIconImageAsDataUrl: (imagePath: string) => Promise<string | null>;
   getAnalyticsOptOut: () => Promise<boolean>;
   setAnalyticsOptOut: (optOut: boolean) => Promise<void>;
   listProfiles: () => Promise<DashboardProfile[]>;

@@ -7,72 +7,138 @@ import { precomputePCHIPTangents } from './pchipTangents';
 import { create } from 'zustand';
 import logger from '@irdashies/utils/logger';
 
-export const REFERENCE_INTERVAL = 0.0025;
-const DECIMAL_PLACES = REFERENCE_INTERVAL.toString().split('.')[1]?.length || 0;
-
-export function normalizeKey(key: number): number {
-  const normalizedKey = parseFloat(
-    (key - (key % REFERENCE_INTERVAL)).toFixed(DECIMAL_PLACES)
-  );
-  return normalizedKey < 0 || normalizedKey >= 1 ? 0 : normalizedKey;
-}
-
 function isLapClean(trackSurface: number, isOnPitRoad: boolean): boolean {
   return trackSurface === TrackLocation.OnTrack && !isOnPitRoad;
 }
 
-interface ReferenceRegistryState {
+const EMPTY_LAP: Readonly<ReferenceLap> = {
+  startTime: -1,
+  finishTime: -1,
+  times: new Float32Array().fill(0),
+  pointPos: new Float32Array().fill(-1),
+  tangents: new Float32Array().fill(0),
+  interval: -1,
+  pointsCount: 0,
+  lastTrackedPct: -1,
+  isCleanLap: false,
+};
+
+const TARGET_SPACING_METERS = 10;
+
+const BUFFER_POOL: Float32Array[] = [];
+
+function acquireBuffer(size: number): Float32Array {
+  const buf = BUFFER_POOL.pop();
+  if (buf && buf.length === size) {
+    return buf;
+  }
+  return new Float32Array(size);
+}
+
+function releaseLapBuffers(lap: ReferenceLap | undefined) {
+  if (!lap || lap.pointsCount === 0) return;
+  BUFFER_POOL.push(lap.times);
+  BUFFER_POOL.push(lap.pointPos);
+  BUFFER_POOL.push(lap.tangents);
+}
+
+function createReferenceLap(
+  pointsCount: number,
+  interval: number,
+  startTime: number,
+  trackPct: number,
+  isCleanLap: boolean
+): ReferenceLap {
+  return {
+    startTime,
+    finishTime: -1,
+    times: acquireBuffer(pointsCount).fill(0),
+    pointPos: acquireBuffer(pointsCount).fill(-1),
+    tangents: acquireBuffer(pointsCount).fill(0),
+    interval,
+    pointsCount,
+    lastTrackedPct: trackPct,
+    isCleanLap,
+  };
+}
+
+/**
+ * Calculates the bucket index for a given track percentage. */
+export function getBucketIndex(trackPct: number, pointsCount: number): number {
+  const index = Math.floor(trackPct * pointsCount);
+  return Math.min(Math.max(index, 0), pointsCount - 1);
+}
+
+export interface ReferenceRegistryState {
   activeLaps: Map<number, ReferenceLap>;
   bestLaps: Map<number, ReferenceLap>;
   persistedLaps: Map<number, ReferenceLap>;
-  seriesId: number | null;
   trackId: number | null;
-  /** Incremented each time persisted laps finish loading so subscribers re-run. */
-  persistedLapsVersion: number;
-  /**
-   * Class IDs for which a ghost lap was loaded from disk during initialize().
-   * In-session laps promoted to persistedLaps are NOT included here. Used by
-   * useReferenceLapSectorTimes to show the ghost icon only when a saved file
-   * is present, not for newly-completed in-session laps.
-   */
-  fileLoadedClassIds: Set<number>;
+  trackLength: number | null;
+  interval: number;
+  pointsCount: number;
 
+  /**
+   * Bootstraps the store at the start of a session by loading previously saved
+   * reference laps from disk for the specific track and car classes.
+   */
   initialize: (
     bridge: ReferenceLapBridge,
     seriesId: number,
     trackId: number,
+    trackLength: number,
     classList: number[]
   ) => Promise<void>;
-  collectLapData: (
+
+  /**
+   * Bulk version of collectLapData to minimize Zustand state access overhead
+   * during high-frequency telemetry updates for multiple drivers.
+   */
+  collectBulkData: (
     bridge: ReferenceLapBridge,
-    carIdx: number,
-    classId: number,
-    trackPct: number,
-    sessionTime: number,
-    trackSurface: number,
-    isOnPitRoad: boolean
+    seriesId: number,
+    drivers: { CarIdx: number; CarClassID: number }[],
+    carIdxLapDistPct: number[],
+    carIdxOnPitRoad: boolean[],
+    sessionTime: number
   ) => void;
+
+  /**
+   * Retrieves the best available lap for comparison. Prefers the car's own
+   * in-session best, falling back to the class-wide persisted best.
+   * @param carIdx The car index to get the best lap for
+   * @param classId The class ID of the car
+   * @param usePersistence If true, strictly returns the persisted class-best.
+   */
   getReferenceLap: (
     carIdx: number,
     classId: number,
     usePersistence: boolean
   ) => ReferenceLap;
+
+  /**
+   * Resets the store state, clearing all maps and identifiers.
+   */
   completeSession: () => void;
 }
 
+/**
+ * Manages the collection, retrieval, and persistence of reference laps (ghost
+ * laps) during an iRacing session.
+ */
 export const useReferenceLapStore = create<ReferenceRegistryState>(
   (set, get) => ({
-    activeLaps: new Map(),
-    bestLaps: new Map(),
-    persistedLaps: new Map(),
-    seriesId: null,
+    activeLaps: new Map<number, ReferenceLap>(),
+    bestLaps: new Map<number, ReferenceLap>(),
+    persistedLaps: new Map<number, ReferenceLap>(),
     trackId: null,
-    persistedLapsVersion: 0,
-    fileLoadedClassIds: new Set<number>(),
+    trackLength: null,
+    interval: 0,
+    pointsCount: 0,
 
-    initialize: async (bridge, seriesId, trackId, classList) => {
-      set({ seriesId, trackId });
-      const { persistedLaps } = get();
+    initialize: async (bridge, seriesId, trackId, trackLength, classList) => {
+      const pointsCount = Math.ceil(trackLength / TARGET_SPACING_METERS);
+      const interval = parseFloat((1 / pointsCount).toFixed(6));
 
       const results = await Promise.all(
         classList.map(async (classId) => {
@@ -82,6 +148,7 @@ export const useReferenceLapStore = create<ReferenceRegistryState>(
               trackId,
               classId
             )) as ReferenceLap;
+
             return { classId, lap };
           } catch (error) {
             logger.error(
@@ -93,124 +160,185 @@ export const useReferenceLapStore = create<ReferenceRegistryState>(
         })
       );
 
-      // Mutate persistedLaps in place to avoid triggering Zustand subscriptions
-      // on each lap, then fire a single notification so hooks re-run once all
-      // laps are ready. Build a new Set for fileLoadedClassIds so selectors
-      // that depend on it re-run after initialization completes.
-      const newFileLoadedClassIds = new Set<number>();
+      const newPersistedLaps = new Map<number, ReferenceLap>();
       results.forEach(({ classId, lap }) => {
         if (lap) {
-          persistedLaps.set(classId, lap);
-          newFileLoadedClassIds.add(classId);
+          newPersistedLaps.set(classId, lap);
         }
       });
-      set((s) => ({
-        persistedLapsVersion: s.persistedLapsVersion + 1,
-        fileLoadedClassIds: newFileLoadedClassIds,
-      }));
+
+      set({
+        trackId,
+        trackLength,
+        pointsCount,
+        interval,
+        persistedLaps: newPersistedLaps,
+        activeLaps: new Map<number, ReferenceLap>(),
+        bestLaps: new Map<number, ReferenceLap>(),
+      });
     },
 
-    collectLapData: (
+    collectBulkData: (
       bridge,
-      carIdx,
-      classId,
-      trackPct,
-      sessionTime,
-      trackSurface,
-      isOnPitRoad
+      seriesId,
+      drivers,
+      carIdxLapDistPct,
+      carIdxOnPitRoad,
+      sessionTime
     ) => {
-      // Access maps directly. Mutating them in place will not trigger React re-renders.
-      const { activeLaps, bestLaps, persistedLaps, seriesId, trackId } = get();
-      const refLap = activeLaps.get(carIdx);
-      const key = normalizeKey(trackPct);
+      // Access state once per bulk update
+      const {
+        activeLaps,
+        bestLaps,
+        persistedLaps,
+        trackId,
+        pointsCount,
+        interval,
+      } = get();
 
-      if (!refLap) {
-        activeLaps.set(carIdx, {
-          classId,
-          startTime: sessionTime,
-          finishTime: -1,
-          refPoints: new Map([
-            [key, { trackPct, timeElapsedSinceStart: 0, tangent: undefined }],
-          ]),
-          lastTrackedPct: trackPct,
-          isCleanLap: isLapClean(trackSurface, isOnPitRoad),
-        });
-        return;
-      }
+      for (const driver of drivers) {
+        if (!driver) continue;
 
-      const isLapComplete = refLap.lastTrackedPct > 0.95 && trackPct < 0.05;
+        const carIdx = driver.CarIdx;
+        const trackPct = carIdxLapDistPct[carIdx];
 
-      if (isLapComplete) {
-        refLap.finishTime = sessionTime;
-        const currentLapTime = refLap.finishTime - refLap.startTime;
-        const MIN_POINTS_FOR_VALID_LAP = 400;
+        if (trackPct === undefined || trackPct === -1) continue;
 
-        if (
-          refLap.refPoints.size >= MIN_POINTS_FOR_VALID_LAP &&
-          currentLapTime > 0
-        ) {
-          const bestLap = bestLaps.get(carIdx);
-          const isNewBestLap = bestLap
-            ? currentLapTime < bestLap.finishTime - bestLap.startTime
-            : true;
+        const classId = driver.CarClassID ?? 0;
+        const isOnPitRoad = carIdxOnPitRoad[carIdx];
+        const refLap = activeLaps.get(carIdx);
+        const key = getBucketIndex(trackPct, pointsCount);
 
-          if (isNewBestLap && refLap.isCleanLap) {
-            precomputePCHIPTangents(refLap);
+        if (!refLap) {
+          const isTrackedFromStart = trackPct <= interval;
+          activeLaps.set(
+            carIdx,
+            createReferenceLap(
+              pointsCount,
+              interval,
+              isTrackedFromStart ? sessionTime : Number.MAX_SAFE_INTEGER,
+              trackPct,
+              isTrackedFromStart &&
+                isLapClean(TrackLocation.OnTrack, isOnPitRoad)
+            )
+          );
+          continue;
+        }
 
-            // Mutate in place
-            bestLaps.set(carIdx, refLap);
+        const isLapComplete = refLap.lastTrackedPct > 0.95 && trackPct < 0.05;
 
-            const savedLap = persistedLaps.get(refLap.classId);
-            const savedLapTime = savedLap
-              ? savedLap.finishTime - savedLap.startTime
-              : Infinity;
+        if (isLapComplete) {
+          refLap.finishTime = sessionTime;
+          const currentLapTime = refLap.finishTime - refLap.startTime;
+          let isPromoted = false;
 
-            if (currentLapTime < savedLapTime) {
-              // Mutate in place
-              persistedLaps.set(refLap.classId, refLap);
+          if (currentLapTime > 0 && classId > 0) {
+            const persistedLap = persistedLaps.get(classId);
+            const persistedLapTime = persistedLap
+              ? persistedLap.finishTime - persistedLap.startTime
+              : null;
 
-              if (seriesId !== null && trackId !== null) {
-                bridge
-                  .saveReferenceLap(seriesId, trackId, refLap.classId, refLap)
-                  .catch((err: Error) => {
-                    logger.error(
-                      `[RefLapStore] Failed to save class ${refLap.classId}`,
-                      err
-                    );
-                  });
+            const VALID_THRESHOLD = 0.85;
+            const isPaceValid =
+              !persistedLapTime ||
+              persistedLapTime / currentLapTime >= VALID_THRESHOLD;
+
+            const bestLap = bestLaps.get(carIdx);
+            const bestLapTime = bestLap
+              ? bestLap.finishTime - bestLap.startTime
+              : null;
+
+            const isNewBestLap =
+              !bestLapTime || (currentLapTime < bestLapTime && isPaceValid);
+
+            if (isNewBestLap && refLap.isCleanLap) {
+              precomputePCHIPTangents(refLap);
+              isPromoted = true;
+
+              // If we have an old best lap that is no longer needed anywhere, recycle it.
+              // NOTE: We check if it's still used by persistedLaps before recycling.
+              if (bestLap && bestLap !== refLap) {
+                const isStillPersisted = Array.from(
+                  persistedLaps.values()
+                ).includes(bestLap);
+                if (!isStillPersisted) releaseLapBuffers(bestLap);
+              }
+
+              bestLaps.set(carIdx, refLap);
+
+              const isCurrentFasterThanPersisted =
+                currentLapTime < (persistedLapTime || Number.MAX_SAFE_INTEGER);
+
+              if (isCurrentFasterThanPersisted) {
+                // If old persisted lap is no longer used as any driver's best lap, recycle it.
+                if (persistedLap && persistedLap !== refLap) {
+                  const isStillBest = Array.from(bestLaps.values()).includes(
+                    persistedLap
+                  );
+                  if (!isStillBest) releaseLapBuffers(persistedLap);
+                }
+
+                persistedLaps.set(classId, refLap);
+
+                if (seriesId !== -1 && trackId !== null) {
+                  bridge
+                    .saveReferenceLap(seriesId, trackId, classId, refLap)
+                    .catch((err: Error) => {
+                      logger.error(
+                        `[RefLapStore] Failed to save class ${classId}`,
+                        err
+                      );
+                    });
+                }
               }
             }
           }
+
+          // If not promoted, buffers are safe to recycle now.
+          // If promoted, they are now owned by bestLaps/persistedLaps.
+          if (!isPromoted) {
+            releaseLapBuffers(refLap);
+          }
+
+          // Always start fresh for the next lap.
+          // createReferenceLap will acquire fresh/recycled buffers from the pool.
+          const isTrackedFromStart = trackPct <= interval;
+          activeLaps.set(
+            carIdx,
+            createReferenceLap(
+              pointsCount,
+              interval,
+              sessionTime,
+              trackPct,
+              isTrackedFromStart &&
+                isLapClean(TrackLocation.OnTrack, isOnPitRoad)
+            )
+          );
+
+          continue;
         }
 
-        activeLaps.set(carIdx, {
-          classId,
-          startTime: sessionTime,
-          finishTime: -1,
-          refPoints: new Map([
-            [key, { trackPct, timeElapsedSinceStart: 0, tangent: undefined }],
-          ]),
-          lastTrackedPct: trackPct,
-          isCleanLap: isLapClean(trackSurface, isOnPitRoad),
-        });
-        return;
-      }
+        if (refLap.isCleanLap && isOnPitRoad) {
+          refLap.isCleanLap = false;
+        }
 
-      if (
-        refLap.isCleanLap &&
-        // trackSurface !== TRACK_SURFACES.OnTrack &&
-        isOnPitRoad
-      ) {
-        refLap.isCleanLap = false;
-      }
+        if (refLap.pointPos[key] === -1) {
+          if (refLap.isCleanLap) {
+            // Check for continuity: every bucket must be visited for a clean reference lap.
+            const prevKey = key === 0 ? undefined : key - 1;
 
-      if (!refLap.refPoints.has(key) && refLap.isCleanLap) {
-        refLap.refPoints.set(key, {
-          timeElapsedSinceStart: sessionTime - refLap.startTime,
-          trackPct,
-          tangent: undefined,
-        });
-        refLap.lastTrackedPct = trackPct;
+            if (prevKey !== undefined && refLap.pointPos[prevKey] === -1) {
+              refLap.isCleanLap = false;
+            }
+
+            if (refLap.isCleanLap) {
+              refLap.times[key] = sessionTime - refLap.startTime;
+              refLap.pointPos[key] = trackPct;
+            }
+          }
+
+          refLap.lastTrackedPct = trackPct;
+        }
       }
     },
 
@@ -219,28 +347,25 @@ export const useReferenceLapStore = create<ReferenceRegistryState>(
       const bestLap = bestLaps.get(carIdx);
 
       if (usePersistence || !bestLap) {
-        return (
-          persistedLaps.get(classId) ?? {
-            classId,
-            startTime: -1,
-            finishTime: -1,
-            refPoints: new Map(),
-            lastTrackedPct: -1,
-            isCleanLap: false,
-          }
-        );
+        return persistedLaps.get(classId) ?? EMPTY_LAP;
       }
       return bestLap;
     },
 
     completeSession: () => {
+      // Clear the buffer pool entirely when the session ends. This ensures that
+      // arrays from one track don't hog memory when switching to
+      // another track.
+      BUFFER_POOL.length = 0;
+
       set({
-        activeLaps: new Map(),
-        bestLaps: new Map(),
-        persistedLaps: new Map(),
-        seriesId: null,
+        activeLaps: new Map<number, ReferenceLap>(),
+        bestLaps: new Map<number, ReferenceLap>(),
+        persistedLaps: new Map<number, ReferenceLap>(),
         trackId: null,
-        fileLoadedClassIds: new Set<number>(),
+        trackLength: null,
+        interval: 0,
+        pointsCount: 0,
       });
     },
   })

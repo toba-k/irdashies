@@ -49,6 +49,9 @@ export const defaultDashboard: {
         background: {
           opacity: 80,
         },
+        foreground: {
+          opacity: 70,
+        },
         countryFlags: {
           enabled: true,
         },
@@ -142,15 +145,6 @@ export const defaultDashboard: {
           wind: {
             enabled: false,
           },
-          humidity: {
-            enabled: false,
-          },
-          driverBadge: {
-            enabled: false,
-            showIRatingChange: false,
-          },
-          sof: { enabled: false },
-          classDrivers: { enabled: false },
           trackName: {
             enabled: false,
           },
@@ -167,10 +161,6 @@ export const defaultDashboard: {
             'airTemperature',
             'trackTemperature',
             'wind',
-            'humidity',
-            'driverBadge',
-            'sof',
-            'classDrivers',
             'trackName',
           ],
         },
@@ -215,12 +205,6 @@ export const defaultDashboard: {
           wind: {
             enabled: false,
           },
-          driverBadge: {
-            enabled: false,
-            showIRatingChange: false,
-          },
-          sof: { enabled: false },
-          classDrivers: { enabled: false },
           trackName: {
             enabled: false,
           },
@@ -237,10 +221,6 @@ export const defaultDashboard: {
             'airTemperature',
             'trackTemperature',
             'wind',
-            'humidity',
-            'driverBadge',
-            'sof',
-            'classDrivers',
             'trackName',
           ],
         },
@@ -407,6 +387,9 @@ export const defaultDashboard: {
         background: {
           opacity: 80,
         },
+        foreground: {
+          opacity: 70,
+        },
         position: {
           enabled: true,
         },
@@ -529,12 +512,6 @@ export const defaultDashboard: {
           wind: {
             enabled: false,
           },
-          driverBadge: {
-            enabled: false,
-            showIRatingChange: false,
-          },
-          sof: { enabled: false },
-          classDrivers: { enabled: false },
           trackName: {
             enabled: false,
           },
@@ -551,10 +528,6 @@ export const defaultDashboard: {
             'airTemperature',
             'trackTemperature',
             'wind',
-            'humidity',
-            'driverBadge',
-            'sof',
-            'classDrivers',
             'trackName',
           ],
         },
@@ -599,12 +572,6 @@ export const defaultDashboard: {
           wind: {
             enabled: false,
           },
-          driverBadge: {
-            enabled: false,
-            showIRatingChange: false,
-          },
-          sof: { enabled: false },
-          classDrivers: { enabled: false },
           trackName: {
             enabled: false,
           },
@@ -621,10 +588,6 @@ export const defaultDashboard: {
             'airTemperature',
             'trackTemperature',
             'wind',
-            'humidity',
-            'driverBadge',
-            'sof',
-            'classDrivers',
             'trackName',
           ],
         },
@@ -683,6 +646,7 @@ export const defaultDashboard: {
         },
         styling: { isMinimalTrack: false, isMinimalCar: false },
         sectorColoring: { enabled: false },
+        playerIcon: { enabled: false, fileName: '' },
       },
     },
     {
@@ -728,6 +692,8 @@ export const defaultDashboard: {
         background: {
           opacity: 25,
         },
+        layout: 'vertical',
+        horizontalMode: 'compact',
         units: 'auto',
         displayOrder: [
           'trackTemp',
@@ -759,6 +725,30 @@ export const defaultDashboard: {
         wind: {
           enabled: true,
         },
+        showOnlyWhenOnTrack: false,
+        sessionVisibility: {
+          race: true,
+          loneQualify: true,
+          openQualify: true,
+          practice: true,
+          offlineTesting: true,
+        },
+      },
+    },
+    {
+      id: 'wind',
+      enabled: false,
+      layout: {
+        x: 1334,
+        y: 471,
+        width: 174,
+        height: 200,
+      },
+      config: {
+        background: {
+          opacity: 80,
+        },
+        units: 'auto',
         showOnlyWhenOnTrack: false,
         sessionVisibility: {
           race: true,
@@ -995,6 +985,7 @@ export const defaultDashboard: {
         showPredictedLap: true,
         showLastLap: true,
         showBestLap: true,
+        showAllTimeLap: false,
         delta: {
           enabled: true,
           method: 'bestlap',
@@ -1116,6 +1107,10 @@ export const defaultDashboard: {
         background: {
           opacity: 30,
         },
+        autoHide: {
+          enabled: false,
+          intervalSeconds: 20,
+        },
       },
     },
     {
@@ -1146,14 +1141,9 @@ export const defaultDashboard: {
         airTemperature: { enabled: false, unit: 'Metric' },
         trackTemperature: { enabled: true, unit: 'Metric' },
         wind: { enabled: false, speedPosition: 'right' },
-        driverBadge: {
-          enabled: false,
-          showIRatingChange: false,
-        },
-        sof: { enabled: false },
-        classDrivers: { enabled: false },
         trackName: { enabled: false },
         background: { opacity: 80 },
+        foreground: { opacity: 70 },
         showOnlyWhenOnTrack: false,
         sessionVisibility: {
           race: true,
@@ -1175,9 +1165,6 @@ export const defaultDashboard: {
           'airTemperature',
           'trackTemperature',
           'wind',
-          'driverBadge',
-          'sof',
-          'classDrivers',
           'trackName',
         ],
       },
@@ -1196,7 +1183,57 @@ export const defaultDashboard: {
         timeFormat: 'seconds-full',
         ghostComparison: 'prefer-ghost',
         trackIncidentSectors: true,
+        alwaysScroll: false,
+        maxSectorsShown: null,
+        thresholds: null,
         showOnlyWhenOnTrack: true,
+        sessionVisibility: {
+          race: true,
+          loneQualify: true,
+          openQualify: true,
+          practice: true,
+          offlineTesting: true,
+        },
+      },
+    },
+    {
+      id: 'heartrate',
+      alwaysEnabled: true,
+      enabled: false,
+      layout: {
+        x: 300,
+        y: 100,
+        width: 230,
+        height: 112,
+      },
+      config: {
+        deviceId: '',
+        widgetUrl: '',
+        showOnlyWhenOnTrack: false,
+        sessionVisibility: {
+          race: true,
+          loneQualify: true,
+          openQualify: true,
+          practice: true,
+          offlineTesting: true,
+        },
+      },
+    },
+    {
+      id: 'cornername',
+      enabled: false,
+      layout: {
+        x: 50,
+        y: 50,
+        width: 350,
+        height: 80,
+      },
+      config: {
+        showCornerNumber: true,
+        showProgressBar: true,
+        showTrackPct: true,
+        fontSize: 18,
+        opacity: 0.9,
         sessionVisibility: {
           race: true,
           loneQualify: true,
@@ -1222,6 +1259,10 @@ export const defaultDashboard: {
     compactMode: 'off' as const,
     overlayAlwaysOnTop: true,
     enableNetworkAccess: false,
+    editMode: {
+      pixelDistances: false,
+      snapToGrid: false,
+    },
   },
 };
 
@@ -1299,29 +1340,12 @@ function mergeDisplayOrder(
   for (const missingId of missing) {
     const defaultIdx = defaultOrder.indexOf(missingId);
     let insertAt = merged.length;
-    let foundPredecessor = false;
 
-    // Look BACKWARD first: insert after the closest preceding neighbor
-    for (let i = defaultIdx - 1; i >= 0; i--) {
-      const beforeIdx = merged.indexOf(defaultOrder[i]);
-      if (beforeIdx !== -1) {
-        insertAt = beforeIdx + 1; // Insert right after that neighbor
-        foundPredecessor = true;
+    for (let i = defaultIdx + 1; i < defaultOrder.length; i++) {
+      const afterIdx = merged.indexOf(defaultOrder[i]);
+      if (afterIdx !== -1) {
+        insertAt = afterIdx;
         break;
-      }
-    }
-
-    // Fall back to forward-looking: insert before the next item in default order
-    if (!foundPredecessor) {
-      // FORWARD SEARCH:
-      // Search for any *subsequent* neighbor from defaultOrder that exists in merged.
-      // If found, insert new element *before* that neighbor.
-      for (let i = defaultIdx + 1; i < defaultOrder.length; i++) {
-        const afterIdx = merged.indexOf(defaultOrder[i]);
-        if (afterIdx !== -1) {
-          insertAt = afterIdx;
-          break;
-        }
       }
     }
 

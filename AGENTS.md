@@ -1,11 +1,21 @@
-# iRDashies - Development Guide
+# irDashies - Development Guide
 
 ## Project Overview
 
-**iRDashies** is an Electron-based iRacing overlay/dashboard app using React, TypeScript, Zustand, and Tailwind CSS.
+**irDashies** is an Electron-based iRacing overlay/dashboard app using React, TypeScript, Zustand, and Tailwind CSS.
 
 - **Repo**: https://github.com/tariknz/irdashies (fork)
 - **Branch**: `main` | **License**: MIT
+
+---
+
+## Architecture Rules (read first)
+
+Before making any non-trivial change, read [`docs/ARCHITECTURE_RULES.md`](docs/ARCHITECTURE_RULES.md). It contains the hard rules for layering, telemetry subscriptions, stores, IPC/bridges, processors, storage, widgets, settings migration, native code, logging, security, performance, and testing — plus a Pre-PR checklist.
+
+The accompanying [`docs/ARCHITECTURE_REVIEW.md`](docs/ARCHITECTURE_REVIEW.md) explains the _why_: findings from the architecture audit, the target topology, and the phased implementation plan. Reference the relevant phase in your PR description.
+
+**When `ARCHITECTURE_RULES.md` conflicts with anything in this file, the rules file wins for architecture concerns.**
 
 ---
 

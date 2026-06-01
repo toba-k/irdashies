@@ -14,6 +14,9 @@ import type {
   ReferenceLapBridge,
   KeybindingsBridge,
   KeybindingActionId,
+  PersonalBestLapBridge,
+  ChromiumFlagsBridge,
+  ChromiumFlagsType,
 } from '@irdashies/types';
 
 export function exposeBridge() {
@@ -97,6 +100,12 @@ export function exposeBridge() {
     },
     getGarageCoverImageAsDataUrl: (imagePath: string) => {
       return ipcRenderer.invoke('getGarageCoverImageAsDataUrl', imagePath);
+    },
+    savePlayerIconImage: (buffer: Uint8Array) => {
+      return ipcRenderer.invoke('savePlayerIconImage', Array.from(buffer));
+    },
+    getPlayerIconImageAsDataUrl: (imagePath: string) => {
+      return ipcRenderer.invoke('getPlayerIconImageAsDataUrl', imagePath);
     },
     getAnalyticsOptOut: () => {
       return ipcRenderer.invoke('getAnalyticsOptOut');
@@ -248,4 +257,20 @@ export function exposeBridge() {
     startRecording: () => ipcRenderer.invoke('keybindings:startRecording'),
     stopRecording: () => ipcRenderer.invoke('keybindings:stopRecording'),
   } as KeybindingsBridge);
+
+  contextBridge.exposeInMainWorld('personalBestBridge', {
+    getPersonalBest: (trackId: string | number, carName: string) =>
+      ipcRenderer.invoke('personalBest:get', trackId, carName),
+    setPersonalBest: (
+      trackId: string | number,
+      carName: string,
+      time: number
+    ) => ipcRenderer.invoke('personalBest:set', trackId, carName, time),  
+  } as PersonalBestLapBridge);
+
+  contextBridge.exposeInMainWorld('chromiumFlagsBridge', {
+    getFlags: () => ipcRenderer.invoke('chromiumFlags:get'),
+    saveFlags: (flags: ChromiumFlagsType) =>
+      ipcRenderer.invoke('chromiumFlags:save', flags),
+  } as ChromiumFlagsBridge);
 }
